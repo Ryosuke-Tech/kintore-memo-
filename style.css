@@ -287,3 +287,6 @@ body.peek header, body.peek main { opacity: 0; pointer-events: none; }
 .notes h3:first-child { margin-top: 0; }
 .notes ul { margin: 0; padding-left: 1.2em; }
 .notes a { color: var(--accent); }
+
+/* バックアップ・背景カードのボタンの高さと余白をそろえる */
+.card .file-btn, .actions .file-btn { margin-bottom: 0; }

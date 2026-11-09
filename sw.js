@@ -1,5 +1,5 @@
 // オフライン用のキャッシュ(同じ場所のファイルだけ)。ファイルを更新したら CACHE の名前を変える
-const CACHE = 'kintore-memo-v6';
+const CACHE = 'kintore-memo-v7';
 const FILES = ['./', 'index.html', 'style.css', 'script.js', 'manifest.json',
   'icon-180.png', 'icon-192.png', 'icon-512.png'];
 
