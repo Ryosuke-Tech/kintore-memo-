@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#121315">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="筋トレメモ">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="manifest" href="manifest.json">
+<title>筋トレメモ</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="bg-layer" hidden aria-hidden="true"></div>
+<button type="button" id="bg-peek" class="peek-btn" hidden aria-pressed="false">背景を見る</button>
+<header>
+  <h1>筋トレメモ</h1>
+  <nav class="tabs" aria-label="画面切り替え">
+    <button type="button" data-tab="home" aria-selected="true">ホーム</button>
+    <button type="button" data-tab="exercises" aria-selected="false">種目</button>
+    <button type="button" data-tab="workouts" aria-selected="false">トレーニング</button>
+    <button type="button" data-tab="body" aria-selected="false">身体情報</button>
+    <button type="button" data-tab="kcal" aria-selected="false">カロリー</button>
+    <button type="button" data-tab="graph" aria-selected="false">グラフ</button>
+  </nav>
+</header>
+
+<main>
+  <!-- ホーム(ダッシュボード) -->
+  <section id="tab-home" class="panel">
+    <div class="hero">
+      <div>
+        <p id="home-date"></p>
+        <h2>今日のトレーニング</h2>
+        <p id="home-hero-text"></p>
+      </div>
+      <button type="button" id="home-go-workout" aria-label="トレーニングを記録する">→</button>
+    </div>
+    <div class="card">
+      <h3>今日のカロリー(摂取)</h3>
+      <div class="donut-wrap">
+        <div class="donut" id="home-donut">
+          <div class="donut-center"><strong id="home-kcal">0</strong><span>kcal</span></div>
+        </div>
+        <ul class="legend" id="home-legend"></ul>
+      </div>
+    </div>
+    <div class="stats" id="home-stats"></div>
+    <div class="card">
+      <div class="card-head"><h3>体重の推移</h3><strong id="home-weight-now"></strong></div>
+      <div id="home-weight-chart"></div>
+      <div class="ranges" id="home-ranges"></div>
+    </div>
+    <div class="card">
+      <h3>背景画像</h3>
+      <p class="hint">好きな写真を背景にできます。画像はこの端末のブラウザの中にだけ保存され、外部には送信されません。</p>
+      <label class="file-btn">画像を選ぶ
+        <input type="file" id="bg-file" accept="image/*">
+      </label>
+      <div id="bg-tune" hidden>
+        <label>拡大(上げると横にも動かせます)
+          <input type="range" id="bg-zoom" min="100" max="300" step="10">
+        </label>
+        <label>写真の位置(横)
+          <input type="range" id="bg-x" min="0" max="100" step="5">
+        </label>
+        <label>写真の位置(縦)
+          <input type="range" id="bg-y" min="0" max="100" step="5">
+        </label>
+        <label>カードの透明度(上げるほど写真が透けます)
+          <input type="range" id="bg-glass" min="0" max="70" step="5">
+        </label>
+        <label>暗さ(文字を読みやすくします)
+          <input type="range" id="bg-dim" min="0" max="85" step="5">
+        </label>
+      </div>
+      <button type="button" class="sub" id="bg-remove" hidden>背景をなしにする</button>
+      <p class="error" id="bg-error" role="alert"></p>
+    </div>
+    <div class="card">
+      <h3>データのバックアップ</h3>
+      <p class="hint">記録をファイルに保存して、あとで読み込めます。iPhoneのデータが消えたときの保険や、別の端末への移行に使えます(背景画像は含みません)。</p>
+      <div class="actions">
+        <button type="button" id="data-export">書き出す</button>
+        <label class="file-btn">読み込む
+          <input type="file" id="data-import" accept="application/json,.json">
+        </label>
+      </div>
+      <p class="error" id="data-error" role="alert"></p>
+      <p class="hint" id="data-ok"></p>
+    </div>
+  </section>
+
+  <!-- ① 種目管理 -->
+  <section id="tab-exercises" class="panel" hidden>
+    <form id="exercise-form" novalidate>
+      <h2 id="exercise-form-title">種目を登録</h2>
+      <input type="hidden" id="exercise-id">
+      <label>種目名
+        <input type="text" id="exercise-name" autocomplete="off">
+      </label>
+      <label>部位
+        <select id="exercise-part"></select>
+      </label>
+      <div class="actions">
+        <button type="submit" id="exercise-submit">登録</button>
+        <button type="button" class="sub" id="exercise-cancel" hidden>キャンセル</button>
+      </div>
+      <p class="error" id="exercise-error" role="alert"></p>
+    </form>
+
+    <h2>種目一覧</h2>
+    <div class="filter">
+      <label>名前で検索
+        <input type="search" id="filter-text" autocomplete="off">
+      </label>
+      <label>部位で絞り込み
+        <select id="filter-part"></select>
+      </label>
+      <button type="button" class="sub" id="filter-clear">条件をクリア</button>
+    </div>
+    <p class="count" id="exercise-count"></p>
+    <p class="error" id="exercise-list-error" role="alert"></p>
+    <ul class="list" id="exercise-list"></ul>
+  </section>
+
+  <!-- ② トレーニング記録 -->
+  <section id="tab-workouts" class="panel" hidden>
+    <form id="workout-form" novalidate>
+      <h2>1セットを記録</h2>
+      <p class="hint" id="workout-hint">先に「種目」タブで種目を登録してください。</p>
+      <label>日付
+        <input type="date" id="workout-date">
+      </label>
+      <label>種目
+        <select id="workout-exercise"></select>
+      </label>
+      <label>セットの種類
+        <select id="workout-type">
+          <option value="main">メイン</option>
+          <option value="warmup">ウォームアップ</option>
+          <option value="drop">ドロップ</option>
+        </select>
+      </label>
+      <div class="pair">
+        <label>重量(0は自重)
+          <input type="text" inputmode="decimal" id="workout-weight" autocomplete="off">
+        </label>
+        <label>単位
+          <select id="workout-unit">
+            <option value="kg">kg</option>
+            <option value="lb">lb</option>
+          </select>
+        </label>
+      </div>
+      <label>回数(Rep)
+        <input type="text" inputmode="numeric" id="workout-reps" autocomplete="off">
+      </label>
+      <label>メモ(20字以内・任意)
+        <input type="text" id="workout-note" autocomplete="off">
+      </label>
+      <div class="actions"><button type="submit">記録する</button></div>
+      <p class="error" id="workout-error" role="alert"></p>
+    </form>
+
+    <h2 id="today-title">今日の記録</h2>
+    <ul class="list" id="today-list"></ul>
+
+    <h2>日付を選んで確認</h2>
+    <label>日付(過去・未来)
+      <input type="date" id="view-date">
+    </label>
+    <ul class="list" id="view-list"></ul>
+
+    <h2>記録を検索(全期間)</h2>
+    <div class="filter">
+      <label>種目名で検索
+        <input type="search" id="wf-text" autocomplete="off">
+      </label>
+      <label>部位で絞り込み
+        <select id="wf-part"></select>
+      </label>
+      <button type="button" class="sub" id="wf-clear">条件をクリア</button>
+    </div>
+    <ul class="list" id="wf-list"></ul>
+
+    <div class="notes">
+      <h3>注意</h3>
+      <ul>
+        <li>推定1RMは、O’Conner式(重量×(1+0.025×rep))で計算した目安です。限界に近い、10rep以下のメインセット(kg)だけに表示し、11rep以上は精度が落ちるため表示しません。</li>
+        <li>消費カロリーは、カロリータブで入力した「トレーニング時間と強度」から計算する目安値です。セットの重量・回数からは計算していません。</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ③ 身体情報 -->
+  <section id="tab-body" class="panel" hidden>
+    <form id="body-form" novalidate>
+      <h2>身体情報を記録</h2>
+      <div class="pair">
+        <label>日付
+          <input type="date" id="body-date">
+        </label>
+        <label>時刻
+          <input type="time" id="body-time">
+        </label>
+      </div>
+      <div class="pair">
+        <label>身長(cm・任意)
+          <input type="text" inputmode="decimal" id="body-height" autocomplete="off">
+        </label>
+        <label>体重(kg・任意)
+          <input type="text" inputmode="decimal" id="body-weight" autocomplete="off">
+        </label>
+      </div>
+      <div class="actions"><button type="submit">記録する</button></div>
+      <p class="error" id="body-error" role="alert"></p>
+    </form>
+
+    <h2>基礎代謝(推定)</h2>
+    <form id="profile-form" novalidate>
+      <div class="pair">
+        <label>年齢
+          <input type="text" inputmode="numeric" id="profile-age" autocomplete="off">
+        </label>
+        <label>性別
+          <select id="profile-sex">
+            <option value="">選択してください</option>
+            <option value="male">男性</option>
+            <option value="female">女性</option>
+          </select>
+        </label>
+      </div>
+      <div class="actions"><button type="submit">保存</button></div>
+      <p class="error" id="profile-error" role="alert"></p>
+      <p class="hint" id="bmr-summary"></p>
+    </form>
+
+    <h2>身体情報の記録(日付ごと)</h2>
+    <ul class="list" id="body-list"></ul>
+  </section>
+  <!-- ⑤ カロリー -->
+  <section id="tab-kcal" class="panel" hidden>
+    <label>日付
+      <input type="date" id="kcal-date">
+    </label>
+    <div class="sum" id="kcal-summary"></div>
+    <p><button type="button" class="sub" id="goto-kcal-chart">カロリー収支のグラフを見る</button></p>
+
+    <form id="meal-form" novalidate>
+      <h2>食事を記録</h2>
+      <label>食品
+        <select id="meal-food"></select>
+      </label>
+      <label id="meal-name-wrap">メニュー名(手入力)
+        <input type="text" id="meal-name" autocomplete="off">
+      </label>
+      <label id="meal-kcal-wrap">カロリー(kcal・手入力)
+        <input type="text" inputmode="numeric" id="meal-kcal" autocomplete="off">
+      </label>
+      <div class="trio" id="meal-pfc-wrap">
+        <label>P(g・任意)
+          <input type="text" inputmode="decimal" id="meal-p" autocomplete="off">
+        </label>
+        <label>F(g・任意)
+          <input type="text" inputmode="decimal" id="meal-f" autocomplete="off">
+        </label>
+        <label>C(g・任意)
+          <input type="text" inputmode="decimal" id="meal-c" autocomplete="off">
+        </label>
+      </div>
+      <label id="meal-amount-wrap" hidden><span id="meal-amount-label">量</span>
+        <input type="text" inputmode="decimal" id="meal-amount" autocomplete="off">
+      </label>
+      <p class="hint" id="meal-preview"></p>
+      <div class="actions"><button type="submit">記録する</button></div>
+      <p class="error" id="meal-error" role="alert"></p>
+    </form>
+    <ul class="list" id="meal-list"></ul>
+
+    <form id="food-form" novalidate>
+      <h2>食品を登録(自動計算用)</h2>
+      <label>食品名
+        <input type="text" id="food-name" autocomplete="off">
+      </label>
+      <div class="pair">
+        <label>基準
+          <select id="food-basis">
+            <option value="g100">100gあたり</option>
+            <option value="serving">1食分(個・杯など)あたり</option>
+          </select>
+        </label>
+        <label>カロリー(kcal)
+          <input type="text" inputmode="decimal" id="food-kcal" autocomplete="off">
+        </label>
+      </div>
+      <div class="trio">
+        <label>P(g・任意)
+          <input type="text" inputmode="decimal" id="food-p" autocomplete="off">
+        </label>
+        <label>F(g・任意)
+          <input type="text" inputmode="decimal" id="food-f" autocomplete="off">
+        </label>
+        <label>C(g・任意)
+          <input type="text" inputmode="decimal" id="food-c" autocomplete="off">
+        </label>
+      </div>
+      <div class="actions"><button type="submit">登録</button></div>
+      <p class="error" id="food-error" role="alert"></p>
+    </form>
+    <ul class="list" id="food-list"></ul>
+
+    <form id="burn-form" novalidate>
+      <h2>トレーニング時間を記録</h2>
+      <div class="pair">
+        <label>時間(分)
+          <input type="text" inputmode="numeric" id="burn-min" autocomplete="off">
+        </label>
+        <label>強度
+          <select id="burn-level"></select>
+        </label>
+      </div>
+      <div class="actions"><button type="submit">記録する</button></div>
+      <p class="error" id="burn-error" role="alert"></p>
+    </form>
+    <ul class="list" id="burn-list"></ul>
+
+    <div class="notes" id="kcal-notes"></div>
+  </section>
+
+  <!-- ④ グラフ -->
+  <section id="tab-graph" class="panel" hidden>
+    <label>集計単位
+      <select id="chart-mode">
+        <option value="exercise">種目ごと</option>
+        <option value="part">部位ごと</option>
+        <option value="day">日ごと</option>
+        <option value="week">週ごと(月曜始まり)</option>
+        <option value="month">月ごと</option>
+        <option value="kcal-day">カロリー収支(日ごと)</option>
+        <option value="kcal-week">カロリー収支(週ごと)</option>
+        <option value="kcal-month">カロリー収支(月ごと)</option>
+      </select>
+    </label>
+    <p class="hint" id="chart-note"></p>
+    <div id="chart"></div>
+  </section>
+</main>
+
+<script src="script.js"></script>
+</body>
+</html>
